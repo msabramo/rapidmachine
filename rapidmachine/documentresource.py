@@ -136,7 +136,7 @@ class DocumentResource(Resource):
         """
         ex = self.document.validate_class_fields(data, validate_all=True)
         if len(ex) == 0:
-            self.doc_instance = self.document(**data)
+            self.doc_instance = self._get_doc_instance(data)
         else:
             self.raise_error(422, {
                 "message": "Validation Failed",
@@ -150,6 +150,19 @@ class DocumentResource(Resource):
             self.create(req, rsp, inst)
         else:
             self.update(req, rsp, inst)
+
+    def _get_doc_instance(self, data):
+        try:
+            doc_instance = self.document(**data)
+        except TypeError:  # pragma: no cover
+            # On Python 2.5, you can't use a dict with unicode keys
+            data_converted = self._get_dict_with_string_keys(data)
+            doc_instance = self.document(**data_converted)
+
+        return doc_instance
+
+    def _get_dict_with_string_keys(self, d):
+        return dict([(str(k), v) for k, v in d.items()])
 
     def link_header(self, req, rsp):
         "Builds the Link header from self.links"
